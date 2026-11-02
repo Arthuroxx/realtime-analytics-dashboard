@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { DatabaseConfig, getDatabaseConfig } from './database.config.js';
 import { Environment } from './env.schema.js';
 
 @Injectable()
@@ -16,5 +17,9 @@ export class AppConfigService {
 
   get apiPrefix(): Environment['API_PREFIX'] {
     return this.config.getOrThrow('API_PREFIX', { infer: true });
+  }
+
+  get database(): DatabaseConfig {
+    return getDatabaseConfig(this.config);
   }
 }

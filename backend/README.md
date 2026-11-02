@@ -6,6 +6,7 @@ API construida con NestJS 12, TypeScript estricto, ESM y Vitest.
 
 - Node.js 24 LTS (ver `.nvmrc`)
 - npm 11+
+- Docker con Compose (para PostgreSQL local)
 
 ## Instalación
 
@@ -24,9 +25,38 @@ no cumple el esquema, el arranque falla con un mensaje descriptivo.
 | `NODE_ENV` | `development`, `test`, `production` | `development` |
 | `PORT` | entero entre 1 y 65535 | `3000` |
 | `API_PREFIX` | segmentos en minúscula separados por `-` o `/` | `api` |
+| `DATABASE_HOST` | host de PostgreSQL | `127.0.0.1` |
+| `DATABASE_PORT` | entero entre 1 y 65535 | `5433` |
+| `DATABASE_NAME` | nombre de la base de datos | `realtime_analytics` |
+| `DATABASE_USER` | usuario de la base de datos | `realtime_analytics` |
+| `DATABASE_PASSWORD` | contraseña local (debe sobrescribirse) | placeholder |
+| `DATABASE_POOL_MAX` | conexiones máximas del pool (1-100) | `10` |
+| `DATABASE_CONNECTION_TIMEOUT_MS` | timeout de conexión en ms (1000-60000) | `5000` |
+| `DATABASE_IDLE_TIMEOUT_MS` | timeout de inactividad en ms (1000-600000) | `10000` |
 
 El archivo `.env` es local y está excluido de Git; `.env.example` documenta los
 valores de desarrollo.
+
+## Base de datos
+
+El puerto por defecto coincide con `infra/compose.yaml`. Desde la raíz del
+repositorio:
+
+```bash
+cp infra/.env.example infra/.env
+docker compose -f infra/compose.yaml up -d
+```
+
+`DatabaseModule` crea un único `Pool` de `pg` mediante inyección de
+dependencias. Al inicializar valida la conexión con `SELECT 1`; si falla, la
+aplicación no arranca. `DatabaseService` expone `checkHealth()` y cierra el pool
+en `onApplicationShutdown`. `enableShutdownHooks()` en `main.ts` permite que
+`SIGINT` y `SIGTERM` ejecuten ese cierre.
+
+El módulo exporta únicamente `DatabaseService`; el token `DATABASE_POOL` queda
+privado. La configuración se valida con Zod en `src/config/` y el pool se crea en
+`src/database/database.providers.ts`. No hay repositorios, tablas ni endpoints de
+base de datos todavía.
 
 ## Ejecución
 
@@ -53,8 +83,9 @@ npm run format       # prettier
 ```text
 backend/
 ├── src/
-│   ├── config/          # esquema, servicio y módulo de configuración
-│   ├── main.ts          # arranque HTTP
+│   ├── config/          # esquema Zod y servicios de configuración
+│   ├── database/        # módulo, provider del pool y servicio de conexión
+│   ├── main.ts          # arranque HTTP y shutdown hooks
 │   ├── app.module.ts    # módulo raíz (composición)
 │   └── app.module.spec.ts
 ├── test/                # pruebas e2e
@@ -66,7 +97,7 @@ backend/
 ```
 
 La lógica se incorporará por módulos funcionales, sin mezclar responsabilidades.
-Aún no se incluyen ORM, base de datos ni funcionalidades de negocio.
+Aún no se incluyen repositorios, tablas ni endpoints de base de datos.
 
 ## Ramas
 
