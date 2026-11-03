@@ -58,6 +58,24 @@ privado. La configuración se valida con Zod en `src/config/` y el pool se crea 
 `src/database/database.providers.ts`. No hay repositorios, tablas ni endpoints de
 base de datos todavía.
 
+## Migraciones
+
+Las migraciones versionadas viven en `database/migrations/` y se escriben en
+TypeScript. `node-pg-migrate` reutiliza las variables `DATABASE_*` del mismo
+`.env`, sin duplicar credenciales.
+
+```bash
+npm run migrate:create -- add-users   # crea una migración nueva
+npm run migrate:up                    # aplica las pendientes
+npm run migrate:down                  # revierte la última aplicada
+npm run migrate:dry-run               # muestra el SQL sin ejecutarlo
+```
+
+El historial se guarda en la tabla `pgmigrations` y cada ejecución se aplica en
+una transacción (`--single-transaction`). La migración `baseline` está vacía de
+forma intencional: las tablas de negocio se añadirán en migraciones posteriores.
+No edites migraciones ya aplicadas; crea una nueva.
+
 ## Ejecución
 
 ```bash
@@ -88,6 +106,9 @@ backend/
 │   ├── main.ts          # arranque HTTP y shutdown hooks
 │   ├── app.module.ts    # módulo raíz (composición)
 │   └── app.module.spec.ts
+├── database/
+│   ├── migrations/      # migraciones versionadas en TypeScript
+│   └── migration.config.ts
 ├── test/                # pruebas e2e
 ├── .env.example
 ├── nest-cli.json
